@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Rekapin
 
-## Getting Started
+Aplikasi pencatatan keuangan pribadi + bot Telegram, di-deploy di Vercel.
 
-First, run the development server:
+## Fitur
+
+- **Bot Telegram**: catat transaksi via chat (`masuk 500000 gaji`, `keluar 20000 makan`), cek saldo `/saldo`, laporan Excel `/laporan`, daftar kategori `/kategori`
+- **Web dashboard**: login, ringkasan saldo, tabel transaksi (filter/edit/hapus), download Excel
+- **Laporan Excel**: 2 sheet (Ringkasan + Detail), format Rupiah
+
+## Tech Stack
+
+Next.js 14+ (App Router) · Prisma · Vercel Postgres · node-telegram-bot-api (webhook) · exceljs · NextAuth (credentials)
+
+## Setup Lokal
 
 ```bash
+npm install
+cp .env.example .env   # isi DATABASE_URL, TELEGRAM_BOT_TOKEN, dll
+npx prisma migrate dev
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Environment Variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variable | Keterangan |
+|---|---|
+| `DATABASE_URL` | URL Postgres (Vercel Postgres / Supabase) |
+| `TELEGRAM_BOT_TOKEN` | Token bot dari @BotFather |
+| `WEBHOOK_URL` | URL publik aplikasi, contoh `https://rekapin.vercel.app` |
+| `NEXTAUTH_SECRET` | Secret NextAuth (`openssl rand -base64 32`) |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Akun admin dashboard (dibuat otomatis) |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Deploy ke Vercel
 
-## Learn More
+1. Push repo ke GitHub, import di Vercel
+2. Set semua env variables di Vercel → Settings → Environment Variables
+3. Deploy
+4. Set webhook Telegram (sekali saja):
 
-To learn more about Next.js, take a look at the following resources:
+```
+https://<app-url>/api/telegram/setup
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Route ini set `setWebhook` + `setMyCommands` otomatis. Buka di browser → JSON `{"ok":true}` berarti berhasil.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Cara Pakai Bot
 
-## Deploy on Vercel
+- `/start` — tampilkan kode hubung, masukkan di dashboard → Pengaturan → Hubungkan Telegram
+- `masuk 500000 gaji` atau `+500000 gaji` — catat pemasukan
+- `keluar 20000 makan siang` atau `-20000 makan siang` — catat pengeluaran
+- `/saldo` — saldo & ringkasan bulan berjalan
+- `/laporan` — pilih bulan, terima file Excel
+- `/kategori` — daftar kategori
+- `/help` — bantuan
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Struktur
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+  app/
+    api/            # route handlers (transactions, categories, report, telegram, auth)
+    dashboard/      # halaman utama (ringkasan + tabel)
+    login/          # halaman login
+    settings/       # hubungkan Telegram
+  lib/
+    bot.ts          # logika bot (commands, callback, parsing)
+    bot-helpers.ts  # helper kirim pesan/status/excel
+    parse.ts        # regex parser transaksi
+    excel.ts        # generate laporan Excel
+    prisma.ts       # Prisma client
+    auth.ts         # NextAuth config
+```

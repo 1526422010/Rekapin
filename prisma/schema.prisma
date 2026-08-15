@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TxType {
+  INCOME
+  EXPENSE
+}
+
+model User {
+  id              String   @id @default(cuid())
+  name            String?
+  email           String?  @unique
+  telegramChatId  String?  @unique
+  lastBotMessageId Int?
+  passwordHash    String?
+  categories      Category[]
+  transactions    Transaction[]
+  createdAt       DateTime @default(now())
+}
+
+model Category {
+  id      String @id @default(cuid())
+  name    String
+  type    TxType
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  transactions Transaction[]
+
+  @@unique([userId, name, type])
+}
+
+model PendingLink {
+  chatId    String   @id
+  code      String
+  expiresAt DateTime
+}
+
+model Transaction {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+  amount     Int
+  type       TxType
+  note       String?
+  date       DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  @@index([userId, date])
+}
